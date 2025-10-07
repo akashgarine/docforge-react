@@ -254,3 +254,35 @@ All colors MUST be HSL.
   outline: 3px solid hsl(var(--primary));
   outline-offset: 2px;
 }
+
+/* Page break marker inside editor */
+.ProseMirror hr.page-break {
+  border: none;
+  border-top: 2px dashed hsl(var(--border));
+  margin: 24px 0;
+  position: relative;
+}
+
+.ProseMirror hr.page-break::after {
+  content: 'Page Break';
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+  font-size: 12px;
+  padding: 0 6px;
+  border-radius: 4px;
+}
+
+/* Printing: force page break */
+@media print {
+  .ProseMirror hr.page-break {
+    break-after: page;
+    page-break-after: always;
+    border: 0;
+    height: 0;
+    margin: 0;
+  }
+}

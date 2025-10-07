@@ -21,6 +21,8 @@ import {
   Minus,
   Palette,
   FileText,
+  Scissors,
+  FileUp,
 } from 'lucide-react';
 import { useRef } from 'react';
 
@@ -28,11 +30,13 @@ interface EditorToolbarProps {
   editor: Editor;
   onImageUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onWordUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onPdfUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-export const EditorToolbar = ({ editor, onImageUpload, onWordUpload }: EditorToolbarProps) => {
+export const EditorToolbar = ({ editor, onImageUpload, onWordUpload, onPdfUpload }: EditorToolbarProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const wordInputRef = useRef<HTMLInputElement>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
 
   const addTable = () => {
     editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
@@ -218,11 +222,33 @@ export const EditorToolbar = ({ editor, onImageUpload, onWordUpload }: EditorToo
         <Button
           variant="ghost"
           size="sm"
+          onClick={() => pdfInputRef.current?.click()}
+          className="flex items-center gap-1"
+        >
+          <FileUp className="h-4 w-4" />
+          PDF
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={addTable}
           className="flex items-center gap-1"
         >
           <Table className="h-4 w-4" />
           Table
+        </Button>
+
+        {/* Page Break */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => editor.chain().focus().insertContent({ type: 'pageBreak' }).run()}
+          className="flex items-center gap-1"
+          title="Insert Page Break"
+        >
+          <Scissors className="h-4 w-4" />
+          Break
         </Button>
 
         {/* Table Controls (shown when table is selected) */}
@@ -281,6 +307,13 @@ export const EditorToolbar = ({ editor, onImageUpload, onWordUpload }: EditorToo
           ref={wordInputRef}
           onChange={onWordUpload}
           accept=".docx,.doc"
+          className="hidden"
+        />
+        <input
+          type="file"
+          ref={pdfInputRef}
+          onChange={onPdfUpload}
+          accept=".pdf"
           className="hidden"
         />
       </div>

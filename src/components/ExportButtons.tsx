@@ -4,7 +4,7 @@ import { Download, FileText, FileImage } from 'lucide-react';
 import { toast } from 'sonner';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import { Document, Packer, Paragraph, TextRun, ImageRun, Table, TableRow, TableCell } from 'docx';
+import { Document, Packer, Paragraph, TextRun } from 'docx';
 
 interface ExportButtonsProps {
   editor: Editor;
@@ -18,37 +18,38 @@ export const ExportButtons = ({ editor }: ExportButtonsProps) => {
       const editorElement = document.querySelector('.ProseMirror');
       if (!editorElement) return;
 
-      const canvas = await html2canvas(editorElement as HTMLElement, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-      });
-
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      });
-
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = pdfWidth - 20; // 10mm margin on each side
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const imgWidth = pdfWidth - 20; // 10mm margins
 
-      let heightLeft = imgHeight;
-      let position = 10; // 10mm top margin
+      // Split content by explicit page breaks
+      const html = (editorElement as HTMLElement).innerHTML;
+      const parts = html.split(/<hr[^>]*data-page-break=['"]true['"][^>]*>/i);
 
-      pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-      heightLeft -= pdfHeight - 20; // Account for margins
+      // Helper to render a page HTML into canvas and add to pdf
+      const container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.left = '-10000px';
+      container.style.top = '0';
+      container.style.width = (editorElement as HTMLElement).clientWidth + 'px';
+      container.className = (editorElement as HTMLElement).className; // inherit ProseMirror styles
+      document.body.appendChild(container);
 
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight + 10;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-        heightLeft -= pdfHeight - 20;
+      for (let i = 0; i < parts.length; i++) {
+        container.innerHTML = parts[i];
+        const canvas = await html2canvas(container as HTMLElement, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: null,
+        });
+        const imgData = canvas.toDataURL('image/png');
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        if (i > 0) pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
       }
 
+      document.body.removeChild(container);
       pdf.save('document.pdf');
       toast('PDF exported successfully!');
     } catch (error) {
@@ -65,7 +66,7 @@ export const ExportButtons = ({ editor }: ExportButtonsProps) => {
       const parser = new DOMParser();
       const doc = parser.parseFromString(content, 'text/html');
       
-      const paragraphs: any[] = [];
+      const paragraphs: Paragraph[] = [];
       
       // Simple conversion - you might want to enhance this
       const processNode = (node: Node) => {
@@ -81,6 +82,12 @@ export const ExportButtons = ({ editor }: ExportButtonsProps) => {
         } else if (node.nodeType === Node.ELEMENT_NODE) {
           const element = node as Element;
           
+          // Page break marker
+          if (element.tagName === 'HR' && (element as HTMLElement).dataset.pageBreak === 'true') {
+            paragraphs.push(new Paragraph({ pageBreakBefore: true, children: [] }));
+            return;
+          }
+
           if (element.tagName === 'H1' || element.tagName === 'H2' || element.tagName === 'H3') {
             paragraphs.push(
               new Paragraph({
@@ -143,8 +150,8 @@ export const ExportButtons = ({ editor }: ExportButtonsProps) => {
         }],
       });
 
-      const buffer = await Packer.toBuffer(wordDoc);
-      const blob = new Blob([buffer], { 
+      const buffer = await Packer.toBlob(wordDoc);
+      const blob = new Blob([buffer], {
         type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
       });
       
