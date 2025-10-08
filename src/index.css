@@ -2,6 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Resizable Image Styles */
+.resizable-image-wrapper {
+  display: inline-block;
+  margin: 8px 0;
+}
+
+.resizable-image-wrapper:hover .react-resizable-handle {
+  opacity: 1 !important;
+}
+
+.react-resizable-handle {
+  transition: opacity 0.2s ease;
+}
+
+/* Hide resize handles by default, show on hover */
+.resizable-image-wrapper .react-resizable-handle {
+  opacity: 0;
+}
+
+.resizable-image-wrapper:hover .react-resizable-handle,
+.resizable-image-wrapper.selected .react-resizable-handle {
+  opacity: 1;
+}
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */

@@ -4,6 +4,9 @@ import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Toggle } from '@/components/ui/toggle';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   Bold,
   Italic,
@@ -24,22 +27,34 @@ import {
   Scissors,
   FileUp,
 } from 'lucide-react';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 
 interface EditorToolbarProps {
   editor: Editor;
   onImageUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onWordUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onPdfUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onFindPlaceholders: () => void;
 }
 
-export const EditorToolbar = ({ editor, onImageUpload, onWordUpload, onPdfUpload }: EditorToolbarProps) => {
+export const EditorToolbar = ({ editor, onImageUpload, onWordUpload, onPdfUpload, onFindPlaceholders }: EditorToolbarProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const wordInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
+  
+  // Table dialog state
+  const [tableDialogOpen, setTableDialogOpen] = useState(false);
+  const [tableRows, setTableRows] = useState(3);
+  const [tableCols, setTableCols] = useState(3);
+  const [withHeader, setWithHeader] = useState(true);
 
   const addTable = () => {
-    editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+    editor.chain().focus().insertTable({ 
+      rows: tableRows, 
+      cols: tableCols, 
+      withHeaderRow: withHeader 
+    }).run();
+    setTableDialogOpen(false);
   };
 
   const handleFontSizeChange = (size: string) => {
@@ -229,15 +244,79 @@ export const EditorToolbar = ({ editor, onImageUpload, onWordUpload, onPdfUpload
           PDF
         </Button>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={addTable}
-          className="flex items-center gap-1"
-        >
-          <Table className="h-4 w-4" />
-          Table
-        </Button>
+        <Dialog open={tableDialogOpen} onOpenChange={setTableDialogOpen}>
+          <DialogTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex items-center gap-1"
+            >
+              <Table className="h-4 w-4" />
+              Table
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Insert Table</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="rows" className="text-right">
+                  Rows
+                </Label>
+                <Input
+                  id="rows"
+                  type="number"
+                  min="1"
+                  max="20"
+                  value={tableRows}
+                  onChange={(e) => setTableRows(Number(e.target.value))}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="cols" className="text-right">
+                  Columns
+                </Label>
+                <Input
+                  id="cols"
+                  type="number"
+                  min="1"
+                  max="20"
+                  value={tableCols}
+                  onChange={(e) => setTableCols(Number(e.target.value))}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="header" className="text-right">
+                  Header Row
+                </Label>
+                <div className="col-span-3 flex items-center space-x-2">
+                  <Switch
+                    id="header"
+                    checked={withHeader}
+                    onCheckedChange={setWithHeader}
+                  />
+                  <Label htmlFor="header" className="text-sm font-normal">
+                    Include header row
+                  </Label>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setTableDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button onClick={addTable}>
+                Insert Table
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Page Break */}
         <Button
@@ -249,6 +328,17 @@ export const EditorToolbar = ({ editor, onImageUpload, onWordUpload, onPdfUpload
         >
           <Scissors className="h-4 w-4" />
           Break
+        </Button>
+
+        {/* Find Placeholders */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onFindPlaceholders}
+          className="flex items-center gap-1 bg-blue-500 text-white hover:bg-blue-600"
+          title="Find Placeholders"
+        >
+          🔍 Find Placeholders
         </Button>
 
         {/* Table Controls (shown when table is selected) */}
